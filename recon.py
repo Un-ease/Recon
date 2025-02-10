@@ -90,6 +90,20 @@ def enumerate_subdomains(domain, save_location):
         loading_thread.join()
         print(f"\rspyhunt {'completed successfully' if result.returncode == 0 else 'failed'}. Output saved to {save_location}/subdomain3.txt.")
 
+        print("\nMerging and sorting subdomains...")
+        subprocess.run(
+            ["sort", "-u",
+             f"{save_location}/subdomain1.txt",
+             f"{save_location}/subdomain2.txt",
+             f"{save_location}/subdomain3.txt",
+             "-o", f"{save_location}/domain.txt"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+
+        print(f"\n✅ Unique subdomains saved in {save_location}/domain.txt")
+
     except Exception as e:
         print(f"\rError running subdomain tools: {str(e)}")
 
