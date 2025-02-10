@@ -15,7 +15,7 @@ def landing_page():
 ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░      ░▒▓█▓▒░        
  ░▒▓██████▓▒░░▒▓█▓▒░░▒▓█▓▒░▒▓████████▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓████████▓▒░▒▓████████▓▒░ 
 
-                        Subdomain Enumeration Tool v1.0
+                        Subdomain Enumeration Tool v1.1 - Anij Gurung
                   ---------------------------------------------
                   Enter your domain and save location below.
                   Press Ctrl+C to cancel at any time.
@@ -29,14 +29,14 @@ def loading_animation(stop_event):
     symbols = ['|', '/', '-', '\\']
     i = 0
     while not stop_event.is_set():
-        print(f"\rRunning... {symbols[i % len(symbols)]}", end="")
+        print(f"\rRunning... {symbols[i % len(symbols)]}", end="", flush=True)
         i += 1
         time.sleep(0.1)
+    print("\r" + " " * 50, end="\r")  # Clear line after stopping
 
 # Function to run subdomain enumeration tools and save the output
 def enumerate_subdomains(domain, save_location):
-    # Ensure the save directory exists
-    os.makedirs(save_location, exist_ok=True)
+    os.makedirs(save_location, exist_ok=True)  # Ensure the save directory exists
 
     try:
         # Subfinder
@@ -46,21 +46,18 @@ def enumerate_subdomains(domain, save_location):
         loading_thread.start()
         with open(f"{save_location}/subdomain1.txt", "w") as outfile:
             result = subprocess.run(
-                ["subfinder", "-d", domain, "-all", "recursive"],
+                ["subfinder", "-d", domain, "-all"],
                 stdout=outfile,
                 stderr=subprocess.PIPE,
                 text=True
             )
         stop_event.set()
         loading_thread.join()
-        if result.returncode == 0:
-            print(f"\rsubfinder completed successfully. Output saved to {save_location}/subdomain1.txt.")
-        else:
-            print(f"\rsubfinder failed with status: {result.returncode}. Error: {result.stderr.strip()}")
+        print(f"\rsubfinder {'completed successfully' if result.returncode == 0 else 'failed'}. Output saved to {save_location}/subdomain1.txt.")
 
         # Assetfinder
         print("\nStarting assetfinder...")
-        stop_event = threading.Event()
+        stop_event.clear()
         loading_thread = threading.Thread(target=loading_animation, args=(stop_event,))
         loading_thread.start()
         with open(f"{save_location}/subdomain2.txt", "w") as outfile:
@@ -72,32 +69,26 @@ def enumerate_subdomains(domain, save_location):
             )
         stop_event.set()
         loading_thread.join()
-        if result.returncode == 0:
-            print(f"\rassetfinder completed successfully. Output saved to {save_location}/subdomain2.txt.")
-        else:
-            print(f"\rassetfinder failed with status: {result.returncode}. Error: {result.stderr.strip()}")
+        print(f"\rassetfinder {'completed successfully' if result.returncode == 0 else 'failed'}. Output saved to {save_location}/subdomain2.txt.")
 
         # Spyhunt
         print("\nStarting spyhunt...")
-        stop_event = threading.Event()
+        stop_event.clear()
         loading_thread = threading.Thread(target=loading_animation, args=(stop_event,))
         loading_thread.start()
         spyhunt_dir = os.path.expanduser("~/spyhunt/")
         venv_activate = os.path.join(spyhunt_dir, "venv/bin/activate")
         spyhunt_script = os.path.join(spyhunt_dir, "spyhunt.py")
+        spyhunt_command = f"cd {spyhunt_dir} && . {venv_activate} && python3 {spyhunt_script} -s {domain} --save {save_location}/subdomain3.txt"
         result = subprocess.run(
-            f"cd {spyhunt_dir} && source {venv_activate} && python3 {spyhunt_script} -s {domain} --save {save_location}/subdomain3.txt",
-            shell=True,
+            ["bash", "-c", spyhunt_command],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True
         )
         stop_event.set()
         loading_thread.join()
-        if result.returncode == 0:
-            print(f"\rspyhunt completed successfully. Output saved to {save_location}/subdomain3.txt.")
-        else:
-            print(f"\rspyhunt failed with status: {result.returncode}. Error: {result.stderr.strip()}")
+        print(f"\rspyhunt {'completed successfully' if result.returncode == 0 else 'failed'}. Output saved to {save_location}/subdomain3.txt.")
 
     except Exception as e:
         print(f"\rError running subdomain tools: {str(e)}")
@@ -106,10 +97,8 @@ def enumerate_subdomains(domain, save_location):
 def main():
     import sys
     try:
-        # Display the landing page
-        landing_page()
+        landing_page()  # Display the landing page
         
-        # Get user inputs
         domain = input("Enter the domain: ").strip()
         save_location = input("Enter the save location (default ./results/): ").strip() or "./results/"
         
@@ -118,12 +107,13 @@ def main():
             print("Invalid domain. Please enter a valid domain.")
             return
         
-        # Run the subdomain enumeration
-        enumerate_subdomains(domain, save_location)
-    
+        save_location = os.path.abspath(save_location)  # Convert to absolute path
+        
+        enumerate_subdomains(domain, save_location)  # Run subdomain enumeration
+
     except KeyboardInterrupt:
         print("\nOperation cancelled by user. Please try again.")
-        return
+        sys.exit(1)
 
 # Entry point of the script
 if __name__ == "__main__":
